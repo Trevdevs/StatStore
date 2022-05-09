@@ -42,6 +42,15 @@ public class Window
         while( !glfwWindowShouldClose(window) )
         {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            glColor3f(0, 255, 255);
+            glBegin(GL_QUADS);
+            glVertex2f(0,0);
+            glVertex2f(.9f,0);
+            glVertex2f(.9f,.9f);
+            glVertex2f(0,.9f);
+            glEnd();
+
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
