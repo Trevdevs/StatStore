@@ -1,23 +1,25 @@
 package dev.trevdevs.statstore;
 
+import org.joml.Math;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
-import org.lwjgl.system.MemoryUtil;
-
-import java.nio.FloatBuffer;
-import java.util.Scanner;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
-import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL20.*;
-import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 public class Window
 {
     private long window;
     private ShaderProgram sp;
+
+    private float fov;
+    private float z_near;
+    private float z_far;
+
+    private Matrix4f projectionMatrix;
 
     public Window()
     {
@@ -39,9 +41,7 @@ public class Window
         if (window == NULL)
             throw new RuntimeException("Failed to create window");
 
-
         glfwMakeContextCurrent(window);
-        glfwSwapInterval(0);
         glfwShowWindow(window);
         GL.createCapabilities();
 
@@ -50,6 +50,18 @@ public class Window
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+        fov = 60.0f;
+        z_near = 0.01f;
+        z_far = 1000f;
+
+        projectionMatrix = new Matrix4f();
+        projectionMatrix = getProjectionMatrix(fov, 800,600,z_near, z_far);
+
+        sp.bind();
+        sp.setUniform("projectionMatrix", projectionMatrix);
+
+        glEnable(GL_DEPTH_TEST);
     }
 
     /**
@@ -58,55 +70,46 @@ public class Window
     private void draw()
     {
         float[] vertices = new float[] {
-                0.0f,  0.5f, 0.0f,
-                -0.5f, -0.5f, 0.0f,
-                0.5f, -0.5f, 0.0f
+                -0.5f, -0.5f, -0.5f,
+                -0.5f, 0.5f, -0.5f,
+                0.5f, 0.5f, -0.5f,
+                0.5f, -0.5f, -0.5f,
         };
 
-        FloatBuffer verticesBuffer = MemoryUtil.memAllocFloat(vertices.length);
-        verticesBuffer.put(vertices).flip();
+        int[] indices = new int[] {
+                0,1,2,2,3,0
+        };
 
-        int vaoId = glGenVertexArrays();
-        glBindVertexArray(vaoId);
+        float[] color = new float[] {
+                1f, 0.0f, 0.0f,
+                0.0f, 0.0f, 0.0f,
+                0.0f, 1.0f, 0.0f,
+                0.0f, 0.0f, 0.0f
+        };
 
-        int vboId = glGenBuffers();
-        glBindBuffer(GL_ARRAY_BUFFER, vboId);
-        glBufferData(GL_ARRAY_BUFFER, verticesBuffer, GL_STATIC_DRAW);
-        memFree(verticesBuffer);
+        Mesh mesh1 = new Mesh(vertices, indices, color);
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-
-        if(verticesBuffer != null)
-            MemoryUtil.memFree(verticesBuffer);
+        GameObject obj = new GameObject(mesh1);
 
         while( !glfwWindowShouldClose(window) )
         {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            sp.bind();
-
-            glBindVertexArray(vaoId);
-            glEnableVertexAttribArray(0);
-
-            glDrawArrays(GL_TRIANGLES, 0, 3);
-
-            glDisableVertexAttribArray(0);
-            glBindVertexArray(0);
-
-            sp.unbind();
+            obj.getMesh().draw();
 
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
+        sp.unbind();
         sp.clean();
-        glDisableVertexAttribArray(0);
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glDeleteBuffers(vboId);
+        mesh1.clean();
+    }
 
-        glBindVertexArray(0);
-        glDeleteVertexArrays(vaoId);
+    public final Matrix4f getProjectionMatrix(float fov, float width, float height, float zNear, float zFar)
+    {
+        float aspectRatio = width/height;
+        projectionMatrix.identity();
+        projectionMatrix.perspective(fov, aspectRatio, zNear, zFar);
+        return projectionMatrix;
     }
 }

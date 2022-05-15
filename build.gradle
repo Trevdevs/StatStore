@@ -4,6 +4,7 @@ plugins {
 }
 
 project.ext.lwjglVersion = "3.3.0"
+project.ext.jomlVersion = "1.10.4"
 project.ext.lwjglNatives = "natives-windows"
 
 application {
@@ -29,4 +30,5 @@ dependencies {
 	runtimeOnly "org.lwjgl:lwjgl-openal::$lwjglNatives"
 	runtimeOnly "org.lwjgl:lwjgl-opengl::$lwjglNatives"
 	runtimeOnly "org.lwjgl:lwjgl-stb::$lwjglNatives"
+	implementation "org.joml:joml:${jomlVersion}"
 }

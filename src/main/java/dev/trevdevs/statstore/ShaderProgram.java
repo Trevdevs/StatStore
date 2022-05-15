@@ -1,5 +1,11 @@
 package dev.trevdevs.statstore;
 
+import org.joml.Matrix4f;
+import org.lwjgl.system.MemoryStack;
+
+import java.nio.FloatBuffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
 
 import static org.lwjgl.opengl.GL20.*;
@@ -11,8 +17,12 @@ public class ShaderProgram
     private int vertexShaderId;
     private int fragShaderId;
 
+    private Map<String, Integer> uniforms;
+
     public ShaderProgram() throws Exception
     {
+        uniforms = new HashMap<>();
+
         id = glCreateProgram();
         if(id == 0)
             throw new Exception("Could not initialize shader program");
@@ -21,6 +31,8 @@ public class ShaderProgram
         createFragShader(read("fragment.fs"));
 
         linkShaders();
+
+        createUniform("projectionMatrix");
     }
 
     private int createShader(String code, int type) throws Exception
@@ -79,5 +91,25 @@ public class ShaderProgram
     {
         Scanner s = new Scanner(getClass().getClassLoader().getResourceAsStream(name)).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
+    }
+
+    private void createUniform(String name) throws Exception
+    {
+        int uniformLoc = glGetUniformLocation(id, name);
+
+        if(uniformLoc < 0)
+            throw new Exception("Failed to find uniform of name: " + name);
+
+        uniforms.put(name, uniformLoc);
+    }
+
+    public void setUniform(String name, Matrix4f value)
+    {
+        try(MemoryStack stack = MemoryStack.stackPush())
+        {
+            FloatBuffer fb = stack.mallocFloat(16);
+            value.get(fb);
+            glUniformMatrix4fv(uniforms.get(name), false, fb);
+        }
     }
 }
