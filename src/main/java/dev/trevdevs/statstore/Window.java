@@ -20,6 +20,7 @@ public class Window
     private float z_far;
 
     private Matrix4f projectionMatrix;
+    private Matrix4f transformMatrix;
 
     public Window()
     {
@@ -52,16 +53,16 @@ public class Window
         }
 
         fov = 60.0f;
-        z_near = 0.01f;
+        z_near = 0.1f;
         z_far = 1000f;
 
         projectionMatrix = new Matrix4f();
         projectionMatrix = getProjectionMatrix(fov, 800,600,z_near, z_far);
 
+        transformMatrix = new Matrix4f();
+
         sp.bind();
         sp.setUniform("projectionMatrix", projectionMatrix);
-
-        glEnable(GL_DEPTH_TEST);
     }
 
     /**
@@ -90,6 +91,10 @@ public class Window
         Mesh mesh1 = new Mesh(vertices, indices, color);
 
         GameObject obj = new GameObject(mesh1);
+        obj.translate(0,0,0);
+        obj.rotate(0,45,0);
+        transformMatrix = getTransformMatrix(obj);
+        sp.setUniform("transformMatrix", transformMatrix);
 
         while( !glfwWindowShouldClose(window) )
         {
@@ -111,5 +116,17 @@ public class Window
         projectionMatrix.identity();
         projectionMatrix.perspective(fov, aspectRatio, zNear, zFar);
         return projectionMatrix;
+    }
+
+    public final Matrix4f getTransformMatrix(GameObject object)
+    {
+        Vector3f rotation = object.getRotation();
+
+        transformMatrix.identity().scale(object.getScale()).
+                rotateX(Math.toRadians(rotation.x)).
+                rotateY(Math.toRadians(rotation.y)).
+                rotateZ(Math.toRadians(rotation.z)).
+                translate(object.getPosition());
+        return transformMatrix;
     }
 }

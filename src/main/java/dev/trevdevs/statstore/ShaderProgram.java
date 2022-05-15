@@ -33,6 +33,7 @@ public class ShaderProgram
         linkShaders();
 
         createUniform("projectionMatrix");
+        createUniform("transformMatrix");
     }
 
     private int createShader(String code, int type) throws Exception

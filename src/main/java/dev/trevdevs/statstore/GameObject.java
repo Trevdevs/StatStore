@@ -15,7 +15,7 @@ public class GameObject
         this.mesh = mesh;
         this.position = new Vector3f();
         this.rotation = new Vector3f();
-        this.scale = new Vector3f();
+        this.scale = new Vector3f(1,1,1);
     }
 
     public Mesh getMesh()
