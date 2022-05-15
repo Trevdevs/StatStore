@@ -1,6 +1,5 @@
 package dev.trevdevs.statstore;
 
-import org.joml.Math;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -53,7 +52,7 @@ public class Window
         }
 
         fov = 60.0f;
-        z_near = 0.1f;
+        z_near = 0.01f;
         z_far = 1000f;
 
         projectionMatrix = new Matrix4f();
@@ -63,6 +62,8 @@ public class Window
 
         sp.bind();
         sp.setUniform("projectionMatrix", projectionMatrix);
+
+        glEnable(GL_DEPTH_TEST);
     }
 
     /**
@@ -71,34 +72,65 @@ public class Window
     private void draw()
     {
         float[] vertices = new float[] {
+                // VO
+                -0.5f,  0.5f,  0.5f,
+                // V1
+                -0.5f, -0.5f,  0.5f,
+                // V2
+                0.5f, -0.5f,  0.5f,
+                // V3
+                0.5f,  0.5f,  0.5f,
+                // V4
+                -0.5f,  0.5f, -0.5f,
+                // V5
+                0.5f,  0.5f, -0.5f,
+                // V6
                 -0.5f, -0.5f, -0.5f,
-                -0.5f, 0.5f, -0.5f,
-                0.5f, 0.5f, -0.5f,
+                // V7
                 0.5f, -0.5f, -0.5f,
         };
 
         int[] indices = new int[] {
-                0,1,2,2,3,0
+                // Front face
+                0, 1, 3, 3, 1, 2,
+                // Top Face
+                4, 0, 3, 5, 4, 3,
+                // Right face
+                3, 2, 7, 5, 3, 7,
+                // Left face
+                6, 1, 0, 6, 0, 4,
+                // Bottom face
+                2, 1, 6, 2, 6, 7,
+                // Back face
+                7, 6, 4, 7, 4, 5,
         };
 
         float[] color = new float[] {
-                1f, 0.0f, 0.0f,
-                0.0f, 0.0f, 0.0f,
-                0.0f, 1.0f, 0.0f,
-                0.0f, 0.0f, 0.0f
+                0.5f, 0.0f, 0.0f,
+                0.0f, 0.5f, 0.0f,
+                0.0f, 0.0f, 0.5f,
+                0.0f, 0.5f, 0.5f,
+                0.5f, 0.0f, 0.0f,
+                0.0f, 0.5f, 0.0f,
+                0.0f, 0.0f, 0.5f,
+                0.0f, 0.5f, 0.5f,
         };
 
         Mesh mesh1 = new Mesh(vertices, indices, color);
 
         GameObject obj = new GameObject(mesh1);
-        obj.translate(0,0,0);
-        obj.rotate(0,45,0);
+        obj.translate(0,0, -1f);
         transformMatrix = getTransformMatrix(obj);
         sp.setUniform("transformMatrix", transformMatrix);
 
         while( !glfwWindowShouldClose(window) )
         {
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+            obj.rotate(0.4f,0.5f,0);
+
+            transformMatrix = getTransformMatrix(obj);
+            sp.setUniform("transformMatrix", transformMatrix);
 
             obj.getMesh().draw();
 
@@ -122,11 +154,11 @@ public class Window
     {
         Vector3f rotation = object.getRotation();
 
-        transformMatrix.identity().scale(object.getScale()).
-                rotateX(Math.toRadians(rotation.x)).
-                rotateY(Math.toRadians(rotation.y)).
-                rotateZ(Math.toRadians(rotation.z)).
-                translate(object.getPosition());
+        transformMatrix.identity().translate(object.getPosition()).
+                rotateX((float)Math.toRadians(rotation.x)).
+                rotateY((float)Math.toRadians(rotation.y)).
+                rotateZ((float)Math.toRadians(rotation.z)).
+                scale(object.getScale());
         return transformMatrix;
     }
 }

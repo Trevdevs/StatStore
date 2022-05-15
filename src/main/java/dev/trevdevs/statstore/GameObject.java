@@ -40,19 +40,19 @@ public class GameObject
 
     public void translate(float x, float y, float z)
     {
-        position.x = x;
-        position.y = y;
-        position.z = z;
+        position.x += x;
+        position.y += y;
+        position.z += z;
     }
 
     public void rotate(float x, float y, float z)
     {
-        rotation.x = x;
-        rotation.y = y;
-        rotation.z = z;
+        rotation.x += x;
+        rotation.y += y;
+        rotation.z += z;
     }
 
-    public void scale(float x, float y, float z)
+    public void setScale(float x, float y, float z)
     {
         scale.x = x;
         scale.y = y;
