@@ -5,8 +5,15 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
 
+import javax.imageio.ImageIO;
+import javax.imageio.stream.ImageInputStream;
+import java.awt.image.BufferedImage;
+import java.io.*;
+import java.nio.ByteBuffer;
+
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL30.glGenerateMipmap;
 import static org.lwjgl.system.MemoryUtil.*;
 
 public class Window
@@ -20,6 +27,9 @@ public class Window
 
     private Matrix4f projectionMatrix;
     private Matrix4f transformMatrix;
+
+    private int textureID;
+    private int textureWidth, textureHeight;
 
     public Window()
     {
@@ -60,6 +70,38 @@ public class Window
 
         transformMatrix = new Matrix4f();
 
+        // LOAD TEXTURE
+        InputStream is = ClassLoader.getSystemResourceAsStream("tTest.png");
+        BufferedImage image;
+        ByteArrayOutputStream baos;
+        ByteBuffer texture;
+
+        try {
+            image = ImageIO.read(is);
+            textureWidth = image.getWidth();
+            textureHeight = image.getHeight();
+            baos = new ByteArrayOutputStream();
+            ImageIO.write(image, "png", baos);
+            baos.flush();
+            is.close();
+            texture = ByteBuffer.wrap(baos.toByteArray());
+            baos.close();
+            texture.flip();
+
+            textureID = glGenTextures();
+            glBindTexture(GL_TEXTURE_2D, textureID);
+
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
+
+            glGenerateMipmap(GL_TEXTURE_2D);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        // ================================================
         sp.bind();
         sp.setUniform("projectionMatrix", projectionMatrix);
 
