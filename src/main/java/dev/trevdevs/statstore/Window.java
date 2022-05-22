@@ -2,18 +2,24 @@ package dev.trevdevs.statstore;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFWErrorCallback;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.stb.STBImage;
 
 import javax.imageio.ImageIO;
 import javax.imageio.stream.ImageInputStream;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.ByteBuffer;
+import java.nio.IntBuffer;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL13.GL_TEXTURE0;
+import static org.lwjgl.opengl.GL13.glActiveTexture;
 import static org.lwjgl.opengl.GL30.glGenerateMipmap;
+import static org.lwjgl.stb.STBImage.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
 public class Window
@@ -40,11 +46,10 @@ public class Window
     /**
      * GLFW Context and Window Creation
      */
-    private void init()
-    {
+    private void init() {
         GLFWErrorCallback.createPrint(System.err).set();
 
-        if( !glfwInit() )
+        if (!glfwInit())
             throw new IllegalStateException("Unable to create GLFW context");
 
         window = glfwCreateWindow(800, 600, "Stat Store", NULL, NULL);
@@ -66,45 +71,37 @@ public class Window
         z_far = 1000f;
 
         projectionMatrix = new Matrix4f();
-        projectionMatrix = getProjectionMatrix(fov, 800,600,z_near, z_far);
-
+        projectionMatrix = getProjectionMatrix(fov, 800, 600, z_near, z_far);
         transformMatrix = new Matrix4f();
 
-        // LOAD TEXTURE
-        InputStream is = ClassLoader.getSystemResourceAsStream("tTest.png");
-        BufferedImage image;
-        ByteArrayOutputStream baos;
-        ByteBuffer texture;
+        textureID = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, textureID);
 
-        try {
-            image = ImageIO.read(is);
-            textureWidth = image.getWidth();
-            textureHeight = image.getHeight();
-            baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "png", baos);
-            baos.flush();
-            is.close();
-            texture = ByteBuffer.wrap(baos.toByteArray());
-            baos.close();
-            texture.flip();
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-            textureID = glGenTextures();
-            glBindTexture(GL_TEXTURE_2D, textureID);
+        IntBuffer width = BufferUtils.createIntBuffer(1);
+        IntBuffer height = BufferUtils.createIntBuffer(1);
+        IntBuffer channels = BufferUtils.createIntBuffer(1);
 
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, textureWidth, textureHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, texture);
-
-            glGenerateMipmap(GL_TEXTURE_2D);
-
-        } catch (IOException e) {
-            e.printStackTrace();
+        stbi_set_flip_vertically_on_load(true);
+        ByteBuffer texture = stbi_load("assets/tTest.png", width, height, channels, 0);
+        System.out.println(String.format("W: %d H: %d C: %d", width.get(0), height.get(0), channels.get(0)));
+        if (texture != null)
+        {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width.get(0), height.get(0), 0, GL_RGB, GL_UNSIGNED_BYTE, texture);
+            stbi_image_free(texture);
         }
+        else
+            System.out.println("Failed to load texture");
+
         // ================================================
         sp.bind();
         sp.setUniform("projectionMatrix", projectionMatrix);
-
+        sp.setUniform("textureSampler", 0);
         glEnable(GL_DEPTH_TEST);
     }
 
@@ -122,54 +119,35 @@ public class Window
                 0.5f, -0.5f,  0.5f,
                 // V3
                 0.5f,  0.5f,  0.5f,
-                // V4
-                -0.5f,  0.5f, -0.5f,
-                // V5
-                0.5f,  0.5f, -0.5f,
-                // V6
-                -0.5f, -0.5f, -0.5f,
-                // V7
-                0.5f, -0.5f, -0.5f,
         };
 
         int[] indices = new int[] {
-                // Front face
-                0, 1, 3, 3, 1, 2,
-                // Top Face
-                4, 0, 3, 5, 4, 3,
-                // Right face
-                3, 2, 7, 5, 3, 7,
-                // Left face
-                6, 1, 0, 6, 0, 4,
-                // Bottom face
-                2, 1, 6, 2, 6, 7,
-                // Back face
-                7, 6, 4, 7, 4, 5,
+                0,1,3,
+                3,1,2
         };
 
-        float[] color = new float[] {
-                0.5f, 0.0f, 0.0f,
-                0.0f, 0.5f, 0.0f,
-                0.0f, 0.0f, 0.5f,
-                0.0f, 0.5f, 0.5f,
-                0.5f, 0.0f, 0.0f,
-                0.0f, 0.5f, 0.0f,
-                0.0f, 0.0f, 0.5f,
-                0.0f, 0.5f, 0.5f,
+        float[] texCoords = new float[] {
+                0,0,
+                0,1,
+                1,1,
+                1,0
         };
 
-        Mesh mesh1 = new Mesh(vertices, indices, color);
+        Mesh mesh1 = new Mesh(vertices, indices, texCoords);
 
         GameObject obj = new GameObject(mesh1);
-        obj.translate(0,0, -1f);
+        obj.translate(0,0, -.6f);
         transformMatrix = getTransformMatrix(obj);
         sp.setUniform("transformMatrix", transformMatrix);
 
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textureID);
+
+
         while( !glfwWindowShouldClose(window) )
         {
+            glClearColor(255, 255, 255, 0);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-            obj.rotate(0.4f,0.5f,0);
 
             transformMatrix = getTransformMatrix(obj);
             sp.setUniform("transformMatrix", transformMatrix);
@@ -179,6 +157,7 @@ public class Window
             glfwSwapBuffers(window);
             glfwPollEvents();
         }
+        glBindTexture(GL_TEXTURE_2D, 0);
         sp.unbind();
         sp.clean();
         mesh1.clean();

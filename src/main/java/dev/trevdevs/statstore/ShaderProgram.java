@@ -34,6 +34,7 @@ public class ShaderProgram
 
         createUniform("projectionMatrix");
         createUniform("transformMatrix");
+        createUniform("textureSampler");
     }
 
     private int createShader(String code, int type) throws Exception
@@ -112,5 +113,10 @@ public class ShaderProgram
             value.get(fb);
             glUniformMatrix4fv(uniforms.get(name), false, fb);
         }
+    }
+
+    public void setUniform(String name, int value)
+    {
+        glUniform1i(uniforms.get(name), value);
     }
 }
